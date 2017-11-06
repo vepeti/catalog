@@ -1,0 +1,7 @@
+Package: catalog
+Architecture: all
+Maintainer: @venyi
+Priority: optional
+Version: 0.7
+Description: Log listing tool
+Depends: perl
