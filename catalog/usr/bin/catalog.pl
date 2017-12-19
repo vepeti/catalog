@@ -208,6 +208,13 @@ while (<$file>)
             $conf{"log_format"}=3;
             last;
         }
+# [Tue Sep  5 14:00:06 2017]
+    elsif ($_=~/\[\w{3} (\w{3}) {1,2}(\d{1,2}) (\d{2}):(\d{2}):(\d{2}) (\d{4})/)
+            {
+            $log_regex='\[\w{3} {1,2}(\w{3}) (\d{1,2}) (\d{2}):(\d{2}):(\d{2}) (\d{4})';
+            $conf{"log_format"}=4;
+            last;
+        }
 # Oct 29 06:39:01
     else
         {
@@ -250,6 +257,15 @@ while (<$file>)
             $hour=$4;
             $min=$5; 
             $sec=$6;
+        }
+        elsif ($conf{"log_format"}==4)
+        {
+            $day=$2;
+            $month=$mons{$1}-1;
+            $year=$6;
+            $hour=$3;
+            $min=$4;
+            $sec=$5;
         }
         else
         {
