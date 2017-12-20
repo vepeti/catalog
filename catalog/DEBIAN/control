@@ -2,6 +2,6 @@ Package: catalog
 Architecture: all
 Maintainer: @venyi
 Priority: optional
-Version: 0.8
+Version: 1.0
 Description: Log listing tool
 Depends: perl

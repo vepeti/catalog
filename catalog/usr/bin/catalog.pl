@@ -3,37 +3,32 @@
 use warnings;
 use strict;
 use Time::Local;
-use Getopt::Std;
+use Getopt::Long;
 
-# collect params with getopt
-getopts("f:hc:");
-our($opt_f,$opt_h,$opt_c);
+#
+# Subroutines
+#
 
-if ($opt_h)
+sub helpmsg()
 {
 print "
 Usage: $0 [OPTIONS]
+Example: $0 -f '2017 08 12 09:35:57' -l '/var/log/apache2/access.log'
 
--c <FILE>	use config file instead STDIN
--f <FILE>	print output to specific file
--h		print this help
+-c, --config	Use config file instead params
+-f, --from	Set From date
+-t, --to	Set To date (default is current time)
+-l, --log	Set log file
+-o, --out	Print lines into file
+-h, --help	Print this help
 ";
 exit;
 }
 
-# Init variables
-my %conf;
-my %from;
-my %to;
-my $log_regex;
-my $newlog;
-
-my $from_stamp;
-my $to_stamp;
-
 # ini file read subrutine
 sub read_config
 {
+    my %hash;
     my $paramcount=@_;
     if ($paramcount>1)
     {
@@ -58,36 +53,81 @@ sub read_config
         {
             chomp($_);
             my ($key,$value)=((split /=/, $_)[0],(split /=/, $_)[1]);
-            $conf{$key}=$value;
+            $hash{$key}=$value;
         }
     }
     close($file);
-    return 1;
+    return %hash;
 }
 
-# read conf file if given param or read from stdin
-if ($opt_c)
+
+#
+# Begin
+#
+
+# collect params with getopt or config file
+
+if (!@ARGV)
 {
-    if (!&read_config($opt_c))
+    &helpmsg;
+}
+
+my $config;
+
+GetOptions("c|config:s"	=> \$config);
+
+my %conf;
+
+if ($config)
+{
+    if (&read_config($config))
     {
-        exit;
+	%conf=&read_config($config);
     }
 }
 else
 {
-    print "Input from and end date (yyyy mm dd hh:mm:ss):\n";
-    print "From date: ";
-    $conf{"from"}=<STDIN>;
-    chomp($conf{"from"});
-
-    print "End date: ";
-    $conf{"to"}=<STDIN>;
-    chomp($conf{"to"});
-
-    print "Input target log file path:\n";
-    $conf{"log"}=<STDIN>;
-    chomp($conf{"log"});
+    GetOptions(
+    "h|help"	=> \$conf{"help"},
+    "f|from=s"	=> \$conf{"from"},
+    "t|to=s"	=> \$conf{"to"},
+    "l|log=s"	=> \$conf{"log"},
+    "o|out=s"	=> \$conf{"out"}
+    );
 }
+
+if ($conf{"help"})
+{
+    &helpmsg;
+}
+
+if ((!$conf{"from"}) || (!$conf{"log"}))
+{
+    print "Missing parameters!\n";
+    exit;
+}
+
+if (!$conf{"to"})
+{
+    my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) = localtime();
+    $year+=1900;
+    $mon+=1;
+    $sec=~s/^(\d)$/0$1/;
+    $min=~s/^(\d)$/0$1/;
+    $hour=~s/^(\d)$/0$1/;
+    $mon=~s/^(\d)$/0$1/;
+    $mday=~s/^(\d)$/0$1/;
+    $conf{"to"}="$year $mon $mday $hour:$min:$sec";
+}
+
+# Init variables
+my %from;
+my %to;
+my $log_regex;
+my $newlog;
+
+my $from_stamp;
+my $to_stamp;
 
 # check the given param format
 if ((!exists($conf{"from"})) || ($conf{"from"}!~/^(20[0-9]{2}) (0[1-9]|1[0-2]) (0[1-9]|[1-2][0-9]|3[0-1]) (0[0-9]|1[0-9]|2[0-3]):(0[0-9]|[1-5][0-9]):(0[0-9]|[1-5][0-9])$/))
@@ -166,9 +206,9 @@ if ($size>1000)
     }
 }
 
-if ($opt_f)
+if ($conf{"out"})
 {
-    open($newlog, '>', $opt_f) or die("Unable to open file: $opt_f");
+    open($newlog, '>', $conf{"out"}) or die("Unable to open file: $conf{'out'}");
 }
 
 my $counter=0;
@@ -181,7 +221,7 @@ open($file, "gunzip -c ".$conf{"log"}." |") || die("can't open pipe to $file");
 }
 else
 {
-open($file, $conf{"log"}) or die("Unable to open file: $opt_f");
+open($file, $conf{"log"}) or die("Unable to open file:  $conf{'log'}");
 }
 
 # automatic choose the log format, based on the first line
@@ -280,7 +320,7 @@ while (<$file>)
 
         if (($log_stamp>=$from_stamp) && ($log_stamp<=$to_stamp))
         {
-            if ($opt_f)
+            if ($conf{"out"})
             {
         print $newlog $_;
         $counter++;
@@ -291,7 +331,7 @@ while (<$file>)
             }
         }
     }
-    if ($opt_f)
+    if ($conf{"out"})
     {
         print "\r".$.." line is processed... ".$counter." line is listed";
     }
@@ -300,7 +340,7 @@ close($file);
 
 print "Done!\n";
 
-if ($opt_f)
+if ($conf{"out"})
 {
     close($newlog);
     print "\n";
