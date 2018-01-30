@@ -72,11 +72,17 @@ if (!@ARGV)
     &helpmsg;
 }
 
+my %conf;
 my $config;
 
-GetOptions("c|config:s"	=> \$config);
-
-my %conf;
+GetOptions(
+    "c|config=s"=> \$config,
+    "h|help"	=> \$conf{"help"},
+    "f|from=s"	=> \$conf{"from"},
+    "t|to=s"	=> \$conf{"to"},
+    "l|log=s"	=> \$conf{"log"},
+    "o|out=s"	=> \$conf{"out"}
+);
 
 if ($config)
 {
@@ -84,16 +90,6 @@ if ($config)
     {
 	%conf=&read_config($config);
     }
-}
-else
-{
-    GetOptions(
-    "h|help"	=> \$conf{"help"},
-    "f|from=s"	=> \$conf{"from"},
-    "t|to=s"	=> \$conf{"to"},
-    "l|log=s"	=> \$conf{"log"},
-    "o|out=s"	=> \$conf{"out"}
-    );
 }
 
 if ($conf{"help"})
